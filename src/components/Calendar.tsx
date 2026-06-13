@@ -10,17 +10,22 @@ import {
   formatDayHeading,
   formatTime,
   isSameDay,
+  layoutOverlaps,
   minutesFromDayStart,
   slotToDate,
 } from '../lib/dates';
 
 const SLOT_HEIGHT = 26; // px per 30-minute slot
 
+/** dataTransfer key used when dragging an already-placed event to reschedule. */
+export const EVENT_DND_TYPE = 'application/x-tmt-event';
+
 interface Props {
   weekStart: Date;
   events: CalendarEvent[];
   canSchedule: boolean;
   onDropTask: (taskId: string, when: Date) => void;
+  onMoveEvent: (eventId: string, when: Date) => void;
   onDeleteEvent: (event: CalendarEvent) => void;
 }
 
@@ -34,6 +39,7 @@ export function Calendar({
   events,
   canSchedule,
   onDropTask,
+  onMoveEvent,
   onDeleteEvent,
 }: Props) {
   const [hover, setHover] = useState<HoverTarget | null>(null);
@@ -61,9 +67,14 @@ export function Calendar({
   function handleDrop(e: React.DragEvent, dayIndex: number, slotIndex: number) {
     e.preventDefault();
     setHover(null);
+    const when = slotToDate(weekStart, dayIndex, slotIndex);
+    const eventId = e.dataTransfer.getData(EVENT_DND_TYPE);
+    if (eventId) {
+      onMoveEvent(eventId, when);
+      return;
+    }
     const taskId = e.dataTransfer.getData(TASK_DND_TYPE);
-    if (!taskId) return;
-    onDropTask(taskId, slotToDate(weekStart, dayIndex, slotIndex));
+    if (taskId) onDropTask(taskId, when);
   }
 
   function handleDragOver(e: React.DragEvent, dayIndex: number, slotIndex: number) {
@@ -121,7 +132,11 @@ export function Calendar({
               );
             })}
 
-            {eventsForDay(day).map((event) => {
+            {layoutOverlaps(
+              eventsForDay(day),
+              (e) => new Date(e.start).getTime(),
+              (e) => new Date(e.end).getTime(),
+            ).map(({ item: event, column, columns }) => {
               const start = new Date(event.start);
               const end = new Date(event.end);
               const top = (minutesFromDayStart(start) / SLOT_MINUTES) * SLOT_HEIGHT;
@@ -133,12 +148,26 @@ export function Calendar({
                 18,
                 (minutes / SLOT_MINUTES) * SLOT_HEIGHT - 2,
               );
+              const width = `calc((100% - 6px) / ${columns})`;
+              const left = `calc(3px + (100% - 6px) * ${column} / ${columns})`;
+              const movable = Boolean(event.createdHere);
               return (
                 <div
                   key={event.id}
-                  className={`event ${event.createdHere ? 'event--task' : 'event--existing'}`}
-                  style={{ top, height }}
-                  title={`${event.subject}\n${formatTime(start)}–${formatTime(end)}`}
+                  className={`event ${event.createdHere ? 'event--task' : 'event--existing'} ${
+                    movable ? 'event--movable' : ''
+                  }`}
+                  style={{ top, height, width, left }}
+                  draggable={movable}
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData(EVENT_DND_TYPE, event.id);
+                    e.dataTransfer.effectAllowed = 'move';
+                    document.body.classList.add('tmt-dragging');
+                  }}
+                  onDragEnd={() => document.body.classList.remove('tmt-dragging')}
+                  title={`${event.subject}\n${formatTime(start)}–${formatTime(end)}${
+                    movable ? '\n(ドラッグで時間を変更)' : ''
+                  }`}
                 >
                   <div className="event__time">
                     {formatTime(start)}–{formatTime(end)}

@@ -38,5 +38,7 @@ export interface CalendarBackend {
   /** List events overlapping the [start, end) window. */
   listEvents(startISO: string, endISO: string): Promise<CalendarEvent[]>;
   createEvent(input: Omit<CalendarEvent, 'id'>): Promise<CalendarEvent>;
+  /** Move/resize an existing event, keeping its id. */
+  updateEvent(id: string, patch: { start: string; end: string }): Promise<CalendarEvent>;
   deleteEvent(id: string): Promise<void>;
 }

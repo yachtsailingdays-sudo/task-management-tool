@@ -84,3 +84,49 @@ export function slotToDate(weekStart: Date, dayIndex: number, slotIndex: number)
 export function minutesFromDayStart(date: Date): number {
   return (date.getHours() - DAY_START_HOUR) * 60 + date.getMinutes();
 }
+
+export interface LaidOut<T> {
+  item: T;
+  /** Column index within its overlap cluster. */
+  column: number;
+  /** Total number of columns in its overlap cluster. */
+  columns: number;
+}
+
+/**
+ * Lay out time intervals side by side so overlapping items don't visually
+ * stack. Items are grouped into clusters of transitively overlapping
+ * intervals; within a cluster each item takes the first free column.
+ */
+export function layoutOverlaps<T>(
+  items: T[],
+  getStart: (t: T) => number,
+  getEnd: (t: T) => number,
+): LaidOut<T>[] {
+  const sorted = [...items].sort((a, b) => getStart(a) - getStart(b) || getEnd(a) - getEnd(b));
+  const result: LaidOut<T>[] = [];
+  let cluster: { item: T; column: number }[] = [];
+  let clusterEnd = -Infinity;
+
+  const flush = () => {
+    const columns = cluster.reduce((max, c) => Math.max(max, c.column + 1), 0);
+    for (const c of cluster) result.push({ item: c.item, column: c.column, columns });
+    cluster = [];
+    clusterEnd = -Infinity;
+  };
+
+  for (const item of sorted) {
+    const start = getStart(item);
+    if (cluster.length > 0 && start >= clusterEnd) flush();
+    // Find the lowest column index not occupied by a still-running item.
+    const taken = new Set(
+      cluster.filter((c) => getEnd(c.item) > start).map((c) => c.column),
+    );
+    let column = 0;
+    while (taken.has(column)) column++;
+    cluster.push({ item, column });
+    clusterEnd = Math.max(clusterEnd, getEnd(item));
+  }
+  flush();
+  return result;
+}

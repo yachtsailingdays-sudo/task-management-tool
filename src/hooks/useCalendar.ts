@@ -87,6 +87,15 @@ export function useCalendar(weekStart: Date) {
     [backend],
   );
 
+  const moveEvent = useCallback(
+    async (id: string, startISO: string, endISO: string) => {
+      const updated = await backend.updateEvent(id, { start: startISO, end: endISO });
+      setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...updated } : e)));
+      return updated;
+    },
+    [backend],
+  );
+
   const deleteEvent = useCallback(
     async (id: string) => {
       await backend.deleteEvent(id);
@@ -106,6 +115,7 @@ export function useCalendar(weekStart: Date) {
       signIn,
       signOut,
       createEvent,
+      moveEvent,
       deleteEvent,
       refresh,
     }),
@@ -119,6 +129,7 @@ export function useCalendar(weekStart: Date) {
       signIn,
       signOut,
       createEvent,
+      moveEvent,
       deleteEvent,
       refresh,
     ],

@@ -18,6 +18,7 @@ export function TaskItem({ task, onChangeDuration, onRemove }: Props) {
     e.dataTransfer.setData(TASK_DND_TYPE, task.id);
     e.dataTransfer.setData('text/plain', task.title);
     e.dataTransfer.effectAllowed = 'copy';
+    document.body.classList.add('tmt-dragging');
   }
 
   function commitDuration() {
@@ -30,6 +31,7 @@ export function TaskItem({ task, onChangeDuration, onRemove }: Props) {
       className={`task-item ${task.scheduledEventId ? 'task-item--scheduled' : ''}`}
       draggable
       onDragStart={handleDragStart}
+      onDragEnd={() => document.body.classList.remove('tmt-dragging')}
       title="カレンダーへドラッグして予定を作成"
     >
       <span className="task-item__grip" aria-hidden>

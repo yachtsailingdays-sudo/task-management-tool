@@ -452,6 +452,16 @@ body {
 .event--existing {
   background: #5b6472;
 }
+.event--movable {
+  cursor: grab;
+}
+.event--movable:active {
+  cursor: grabbing;
+}
+/* While dragging, let drops fall through events onto the slots beneath. */
+body.tmt-dragging .event {
+  pointer-events: none;
+}
 .event__time {
   font-size: 10px;
   opacity: 0.9;

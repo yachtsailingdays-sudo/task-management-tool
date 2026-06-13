@@ -137,6 +137,29 @@ export class GraphCalendar implements CalendarBackend {
     };
   }
 
+  async updateEvent(
+    id: string,
+    patch: { start: string; end: string },
+  ): Promise<CalendarEvent> {
+    const tz = localTimeZone();
+    const body = {
+      start: { dateTime: patch.start, timeZone: tz },
+      end: { dateTime: patch.end, timeZone: tz },
+    };
+    const res = await this.graphFetch(`/me/events/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    const g = (await res.json()) as GraphEvent;
+    return {
+      id: g.id,
+      subject: g.subject,
+      start: g.start.dateTime,
+      end: g.end.dateTime,
+      createdHere: true,
+    };
+  }
+
   async deleteEvent(id: string): Promise<void> {
     await this.graphFetch(`/me/events/${id}`, { method: 'DELETE' });
   }

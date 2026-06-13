@@ -69,6 +69,18 @@ export class MockCalendar implements CalendarBackend {
     return event;
   }
 
+  async updateEvent(
+    id: string,
+    patch: { start: string; end: string },
+  ): Promise<CalendarEvent> {
+    const all = loadAll();
+    const idx = all.findIndex((e) => e.id === id);
+    if (idx === -1) throw new Error('予定が見つかりません。');
+    all[idx] = { ...all[idx], ...patch };
+    saveAll(all);
+    return all[idx];
+  }
+
   async deleteEvent(id: string): Promise<void> {
     saveAll(loadAll().filter((e) => e.id !== id));
   }

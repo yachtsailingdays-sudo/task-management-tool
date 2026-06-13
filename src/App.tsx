@@ -41,6 +41,21 @@ export default function App() {
     [cal, getTask, updateTask],
   );
 
+  const handleMoveEvent = useCallback(
+    async (eventId: string, when: Date) => {
+      const event = cal.events.find((e) => e.id === eventId);
+      if (!event) return;
+      const durationMs = new Date(event.end).getTime() - new Date(event.start).getTime();
+      const end = new Date(when.getTime() + durationMs);
+      try {
+        await cal.moveEvent(eventId, toLocalISO(when), toLocalISO(end));
+      } catch (e) {
+        alert(`予定の移動に失敗しました: ${e instanceof Error ? e.message : e}`);
+      }
+    },
+    [cal],
+  );
+
   const handleDeleteEvent = useCallback(
     async (event: CalendarEvent) => {
       const start = new Date(event.start);
@@ -91,6 +106,7 @@ export default function App() {
           events={cal.events}
           canSchedule={Boolean(cal.account)}
           onDropTask={handleDropTask}
+          onMoveEvent={handleMoveEvent}
           onDeleteEvent={handleDeleteEvent}
         />
       </main>
